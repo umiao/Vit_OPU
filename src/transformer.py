@@ -7,7 +7,7 @@ from torch import nn
 from torch import Tensor 
 from torch.nn import functional as F
 import torch
-from .pwlin import pwlin_gelu_basic
+from .pwlin import pwlin_gelu_basic, pwlin_gelu
 from .utils import float2fix, auto_quantize, sqrt_cordic, arctan_cordic
 
 import src.config
@@ -157,47 +157,19 @@ class PositionWiseFeedForward(nn.Module):
         # x = F.gelu(x)
         res = F.gelu(x).cpu().numpy()
 
+        # mantissa_bits_in = quantize_param_dict['transformer_' + str(layer_idx) + 'Positional_0']
+        # mantissa_bits_out = quantize_param_dict['transformer_' + str(layer_idx) + 'Positional_1']
+
 
 
         x = x.cpu().numpy()
-        mantissa_bits_in = quantize_param_dict['transformer_' + str(layer_idx) + 'Positional_0']
-        mantissa_bits_out = quantize_param_dict['transformer_' + str(layer_idx) + 'Positional_1']
-        x = pwlin_gelu_basic(x, None, mantissa_bits_in, mantissa_bits_out)
+
+        # x = pwlin_gelu_basic(x, None, mantissa_bits_in, mantissa_bits_out)
+        x = pwlin_gelu(x, None, src.config.quan_in, src.config.quan_out)
         # print(np.mean(np.abs(res - x)))
         src.config.accumulative_err += np.mean(np.abs(res - x))
         x = torch.from_numpy(x).cuda().float()
 
-
-
-        # vfunc = np.vectorize(arctan_cordic)
-        # # tmp_val = 1 + vfunc(np.sqrt(np.pi / 2),  (x + 0.044715 * (x ** 3)))   # np.sqrt(2 / np.pi) * (x + 0.044715 * (x ** 3))
-        #
-        # tmp_val = 1 + np.arctan((x + 0.044715 * (x ** 3)) / np.sqrt(np.pi / 2))
-        #
-        # # tmp_val = torch.from_numpy(np.array([tmp_val])).cuda()
-        # # if use_static_value:
-        # #     mantissa_bits = quantize_param_dict['transformer_' + str(layer_idx) + 'gelu_0']
-        # #     tmp_val = float2fix(tmp_val, mantissa_bits)
-        # # else:
-        # #     mantissa_bits = auto_quantize(tmp_val)
-        # #     quantize_param_dict['transformer_' + str(layer_idx) + 'gelu_0'] = mantissa_bits
-        # #     tmp_val = float2fix(tmp_val, mantissa_bits)
-        # # tmp_val = tmp_val.cpu().numpy()
-        # tmp_val = tmp_val * 0.5 * x
-        # tmp_val = torch.from_numpy(np.array(tmp_val)).cuda()
-        # # if use_static_value:
-        # #     mantissa_bits = quantize_param_dict['transformer_' + str(layer_idx) + 'gelu_1']
-        # #     tmp_val = float2fix(tmp_val, mantissa_bits)
-        # # else:
-        # #     mantissa_bits = auto_quantize(tmp_val)
-        # #     quantize_param_dict['transformer_' + str(layer_idx) + 'gelu_1'] = mantissa_bits
-        # #     tmp_val = float2fix(tmp_val, mantissa_bits)
-        # # x = tmp_val
-        # err_res = tmp_val.cpu().numpy()
-        # print('The mean relative error would be: ', np.mean(np.abs(res.cpu().numpy() - err_res) / res.cpu().numpy()))
-        # x = tmp_val.float()
-
-        # 0.5 * x * (1 + np.tanh(np.sqrt(2 / np.pi)) ) * (x + 0.044715 * np.pow(x, 3))
 
         if use_static_value and do_quantization:
             mantissa_bits = quantize_param_dict['transformer_' + str(layer_idx) + 'Positional_1']

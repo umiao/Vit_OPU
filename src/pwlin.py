@@ -13,6 +13,17 @@ def apply_pwlin(lut, x, inference_obj, quant_in, quant_out):
     - quant_in: the input quantization
     - quant_out: the output quantization
     """
+
+    #saturation outside of [-3,3]
+    # index_minus_3 = np.where(x < -3)
+    # x[index_minus_3] = 0
+    # index_3 = np.where(x > 3)
+    # preserve = np.zeros(np.shape(x))# x[index_3]
+    # preserve[index_3] = x[index_3]
+    # x[index_3] = 0
+
+
+
     lut_array = np.array(lut)
     lut_indices = np.zeros(x.shape, dtype='int')
 
@@ -44,11 +55,7 @@ def apply_pwlin(lut, x, inference_obj, quant_in, quant_out):
 
 
     ret_val =  v_x_i_1 * delta + v_x_i * (1 - delta)
-    # saturation outside of [-3,3]
-    index_minus_3 = np.where(x < -3)
-    ret_val[index_minus_3] = 0
-    index_3 = np.where(x > 3)
-    ret_val[index_3] = x[index_3]
+
     return ret_val
 
 
@@ -89,7 +96,7 @@ def inverse_pwlin_vectorized_lut(x, inference_obj):
     return lut_out
 
 
-def gelu_pwlin_vectorized_lut(x, inference_obj):
+def gelu_pwlin_vectorized_lut(x, inference_obj, quan_in, quan_out):
     """
     Approximates f(x) = GELU(x)
     - Input is -3 to 3 which is (16, 8)
@@ -97,15 +104,19 @@ def gelu_pwlin_vectorized_lut(x, inference_obj):
 
     Note: this approximation is [-3, 3] which requires normalization beforehand
     """
-    quant_in = 10
-    quant_out = 8
-    lut = [(-3, -0.0036373920817729943, 0.44438519308536634),
-           (-0.7496999999999998, -0.17003910685389734, 2.547978758520282),
-           (-0.3572320499999999, -0.12877242470687775, 2.799300902592587),
-           (0.0, 0.0, 2.799300902592586),
-           (0.35723205, 0.22845962529312222, 2.5479787585202818),
-           (0.7497, 0.5796608931461028, 0.44438519308536634),
-           (3.00001, 2.996362607918227, 0)]
+    quant_in = quan_in # 10
+    quant_out = quan_out # 8
+    # lut = [(-3, -0.0036373920817729943, 0.44438519308536634),
+    #        (-0.7496999999999998, -0.17003910685389734, 2.547978758520282),
+    #        (-0.3572320499999999, -0.12877242470687775, 2.799300902592587),
+    #        (0.0, 0.0, 2.799300902592586),
+    #        (0.35723205, 0.22845962529312222, 2.5479787585202818),
+    #        (0.7497, 0.5796608931461028, 0.44438519308536634),
+    #        (3.00001, 2.996362607918227, 0)]
+
+    lut = [(-3.0, -0.0036373920817729943, 1.0), (-2.0, -0.04540230591222494, 1.0), (-1.0, -0.15880800939172324, 4.0), (-0.75, -0.17003944483437966, 4.0), (-0.5, -0.15428599017485606, 4.0), (-0.25, -0.100324649298315, 4.0), (0.0, 0.0, 4.0), (0.25, 0.149675350701685, 4.0), (0.5, 0.34571400982514394, 4.0), (0.75, 0.5799605551656203, 0.6666666666666666), (2.25, 2.222798670102711, 1.3333333333333333), (3.00001, 2.996362607918227, 0)]
+
+
     lut_out = apply_pwlin(lut, x, inference_obj, quant_in, quant_out)
     return lut_out
 
@@ -119,13 +130,14 @@ def gelu_basic_pwlin_vectorized_lut(x, inference_obj, in_b, out_b):
     """
     quant_in = src.config.quan_in # in_b # 8
     quant_out = src.config.quan_out# 8 # out_b # 8
-    lut = [(-128, -0.0, 0.008042410929059305),
-           (-3.6591762320000214, -0.00032293305386205497, 0.34469491052090934),
-           (-0.7580600000000146, -0.17003402799621162, 1.3019816160195725),
-           (0.009999999999990905, 0.005039893559850952, 1.3576958272576445),
-           (0.7465419999999909, 0.5765088167303702, 0.34288204042730686),
-           (3.6629968797999912, 3.6626790770380957, 0.00810786685829746),
-           (127.001, 127.0, 0)]
+    # lut = [(-128, -0.0, 0.008042410929059305),
+    #        (-3.6591762320000214, -0.00032293305386205497, 0.34469491052090934),
+    #        (-0.7580600000000146, -0.17003402799621162, 1.3019816160195725),
+    #        (0.009999999999990905, 0.005039893559850952, 1.3576958272576445),
+    #        (0.7465419999999909, 0.5765088167303702, 0.34288204042730686),
+    #        (3.6629968797999912, 3.6626790770380957, 0.00810786685829746),
+    #        (127.001, 127.0, 0)]
+    lut = [(-3.0, -0.0036373920817729943, 1.0), (-2.0, -0.04540230591222494, 1.0), (-1.0, -0.15880800939172324, 4.0), (-0.75, -0.17003944483437966, 4.0), (-0.5, -0.15428599017485606, 4.0), (-0.25, -0.100324649298315, 4.0), (0.0, 0.0, 4.0), (0.25, 0.149675350701685, 4.0), (0.5, 0.34571400982514394, 4.0), (0.75, 0.5799605551656203, 0.6666666666666666), (2.25, 2.222798670102711, 1.3333333333333333), (3.0, 2.996362607918227, 0)]
     lut_out = apply_pwlin(lut, x, inference_obj, quant_in, quant_out)
     return lut_out
 
@@ -172,7 +184,7 @@ def split_bits_vectorized(array, word_len, frac_len):
 
 # ---------------- Kernel Approximations ---------------------
 
-def pwlin_gelu(array, inference_obj):
+def pwlin_gelu(array, inference_obj, quan_in, quan_out):
     """
     GELU kernel, complex (with normalization)
     - Input = (16, 8)
@@ -180,10 +192,15 @@ def pwlin_gelu(array, inference_obj):
     """
     q = array.copy()
     q[array > 3] = 0
-    q[array < -3] = 0
-    pwlin_out = gelu_pwlin_vectorized_lut(q, inference_obj)
+    q[array <= -3] = 0
+    # q[array > 2.75] = 0
+    # q[array <= -3] = 0
+    pwlin_out = gelu_pwlin_vectorized_lut(q, inference_obj, quan_in, quan_out)
     pwlin_out[array > 3] = array[array > 3]
     pwlin_out[array < -3] = 0
+
+    # pwlin_out[array > 2.75] = array[array > 2.75]
+    # pwlin_out[array <= -3] = 0
     return pwlin_out
 
 

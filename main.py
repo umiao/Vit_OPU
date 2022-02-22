@@ -42,7 +42,7 @@ class validation:
         ])
         test_loader = torch.utils.data.DataLoader(
             datasets.ImageFolder(testdir, test_transforms),
-            batch_size=16, # 16
+            batch_size=32, # 16
             shuffle=False,
             num_workers=0, pin_memory=True
         )
@@ -147,8 +147,10 @@ if __name__ == '__main__':
     # obj.update_para_setting(optimal_setting)
 
     src.config.quan_in = 6
-    src.config.quan_out = 4
+    src.config.quan_out = 6
     s = time.time()
+    print('current config is: ', src.config.quan_in, src.config.quan_out)
+    print('current batch size = 32')
     obj.test_quantized(batch_num=1)
     e = time.time()
     print('inference time: ', e - s)
@@ -158,18 +160,18 @@ if __name__ == '__main__':
 
 
 # The following parts are the quantization parameter search for gelu (pwlinear version)
-    # f = open('tmp.txt', 'w+')
-    # for a in range(7, 12):
-    #     for b in range(1, 12):
-    #         print('cur_config is ', a ,'  ',b)
-    #         src.config.quan_in = a
-    #         src.config.quan_out = b
-    #         src.config.accumulative_err = 0
-    #
-    #         s = time.time()
-    #         obj.test_quantized(batch_num=1)
-    #         e = time.time()
-    #         print('inference time: ', e - s)
-    #         print('accumulative_err under this setting is: ', src.config.accumulative_err)
-    #         f.write('%d %d %f\n'%(a, b,  src.config.accumulative_err))
-    # f.close()
+#     f = open('tmp.txt', 'w+')
+#     for a in range(1, 12):
+#         for b in range(1, 12):
+#             print('cur_config is ', a ,'  ',b)
+#             src.config.quan_in = a
+#             src.config.quan_out = b
+#             src.config.accumulative_err = 0
+#
+#             s = time.time()
+#             obj.test_quantized(batch_num=1)
+#             e = time.time()
+#             print('inference time: ', e - s)
+#             print('accumulative_err under this setting is: ', src.config.accumulative_err)
+#             f.write('%d %d %f\n'%(a, b,  src.config.accumulative_err))
+#     f.close()

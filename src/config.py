@@ -4,6 +4,6 @@ do_quantization = False
 use_static_value = False
 accumulative_err = 0
 
-quan_in = 8
-quan_out = 8
+quan_in = 6
+quan_out = 6
 
